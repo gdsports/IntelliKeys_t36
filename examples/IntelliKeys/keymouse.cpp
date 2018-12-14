@@ -240,7 +240,6 @@ static const uint16_t membrane_actions_mouse[8][12] = {
 };
 
 #define MOUSE_MOVE	(10)
-static uint8_t last_row, last_col;
 static bool num_lock=false;
 static bool caps_lock=false;
 static uint8_t shift_lock=0;	//0=off,1=on next key,2=lock on
@@ -251,6 +250,11 @@ static uint8_t gui_lock=0;	//0=off,1=on next key,2=lock on
 void clear_membrane(void)
 {
 	memset((void *)membrane, 0, sizeof(membrane));
+	if (num_lock) Keyboard.press(KEY_NUM_LOCK);
+	if (caps_lock) Keyboard.press(KEY_CAPS_LOCK);
+	num_lock = caps_lock = false;
+	shift_lock = ctrl_lock = alt_lock = gui_lock = 0;
+	Mouse.release(MOUSE_ALL);
 	Keyboard.releaseAll();
 }
 
@@ -343,8 +347,6 @@ void process_membrane_press(IntelliKeys &ikey, int x, int y)
 	col = x / 2;
 	row = y / 3;
 	Serial.printf("col,row (%d,%d) membrane %d\n", col, row, membrane[row][col]);
-	last_row = row;
-	last_col = col;
 	if (membrane[row][col] == 0) {
 		keycode = membrane_actions[row][col];
 		if (keycode) {

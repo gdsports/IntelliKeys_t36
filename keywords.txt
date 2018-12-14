@@ -13,6 +13,7 @@ onVersion	KEYWORD2
 onConnect	KEYWORD2
 onDisconnect	KEYWORD2
 onOnOffSwitch	KEYWORD2
+onSerialNum	KEYWORD2
 
 # Literals
 IK_LED_SHIFT	LITERAL1

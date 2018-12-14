@@ -5,7 +5,7 @@ IntelliKeys USB library for the Teensy 3.6 USB host library
 
 Demonstrate the use of the [Teensy
 3.6](https://www.pjrc.com/store/teensy36.html) IntelliKeys (IK) USB host
-driver.  Translate IK touch and switch events into USB keyboard and mouse
+driver. Translate IK touch and switch events into USB keyboard and mouse
 actions. The Teensy 3.6 has one USB host port and one USB device port so it
 plugs in between the IK and the computer.
 
@@ -33,6 +33,10 @@ not control power to the board.
 The 8051 firmware is extracted from the
 [OpenIKeys](https://github.com/ATMakersOrg/OpenIKeys) project.
 
+The IK EEPROM holds the device serial number. Use the onSerialNum function to
+get the serial number. See the example for details. The EEPROM also holds
+calibration values(?) for the overlay sensors.
+
 ## Hardware components
 
 * PJRC [Teensy 3.6](https://www.pjrc.com/store/teensy36.html)
@@ -49,15 +53,16 @@ without using the Arduino IDE to rebuild the code.
 
 ## Development environment
 
-* Install Arduino IDE 1.8.7. Download and follow the instructions at arduino.cc.
-* Install Teenysduino 1.44. Download and follow the instructions at pjrc.com.
+* Install Arduino IDE 1.8.8. Download and follow the instructions at arduino.cc.
+* Install Teenysduino 1.45. Download and follow the instructions at pjrc.com.
 * Install this library in the Arduino library directory.
 * Build and upload the example included with this library. Set the Board to
 Teensy 3.6 and the USB Type to "Serial + Keyboard + Mouse + Joystick".
 
 ## TODO
 
-* EEPROM operations?
+* ~~EEPROM operations?~~
 * CORRECT operations?
 * Load tables from micro SD card
-
+* Modify onSensors so it returns 0 or 1 instead of raw sensor values. Use
+  the EEPROM calibration values.

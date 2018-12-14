@@ -1,10 +1,10 @@
 #!/bin/bash
-IDEVER="1.8.7"
-TEENSYVER="1.44"
+IDEVER="1.8.8"
+TEENSYVER="1.45"
 WORKDIR="/tmp/autobuild_$$"
 mkdir -p ${WORKDIR}
 # Install Ardino IDE with teensyduino in work directory
-TARFILE="${HOME}/Downloads/arduino-${IDEVER}-teensyduino-1.44.tbz"
+TARFILE="${HOME}/Downloads/arduino-${IDEVER}-teensyduino-${TEENSYVER}.tbz"
 if [ -f ${TARFILE} ]
 then
     tar xf ${TARFILE} -C ${WORKDIR}

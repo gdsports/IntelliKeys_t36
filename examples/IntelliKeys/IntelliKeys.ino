@@ -88,6 +88,15 @@ void IK_onoff(int onoff)
   }
 }
 
+char mySN[IK_EEPROM_SN_SIZE+1];	//+1 for terminating NUL
+
+void IK_get_SN(uint8_t SN[IK_EEPROM_SN_SIZE])
+{
+  memcpy(mySN, SN, IK_EEPROM_SN_SIZE);
+  mySN[IK_EEPROM_SN_SIZE] = '\0';
+  Serial.printf("Serial Number = %s\n", mySN);
+}
+
 void setup() {
   Serial.begin(115200);
   while (!Serial && millis() < 2000) ; // wait for Arduino Serial Monitor
@@ -103,6 +112,7 @@ void setup() {
   ikey1.onSensor(IK_sensor);
   ikey1.onVersion(IK_version);
   ikey1.onOnOffSwitch(IK_onoff);
+  ikey1.onSerialNum(IK_get_SN);
 }
 
 void loop() {

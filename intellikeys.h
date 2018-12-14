@@ -21,13 +21,19 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "intellikeysdefs.h"
+
+#define IK_EEPROM_SN_SIZE 29
+
 class IntelliKeys: public USBDriver {
 public:
 	IntelliKeys(USBHost &host) : /* txtimer(this),*/  updatetimer(this) { init(); }
 	void begin();
+	// Commands
 	int setLED(uint8_t number, uint8_t value);
 	int sound(int freq, int duration, int volume);
 	int get_version(void);
+	// Event callback functions
 	void onMembranePress(void (*function)(int x, int y)) {
 		membrane_press_callback = function;
 	}
@@ -52,6 +58,9 @@ public:
 	void onOnOffSwitch(void (*function)(int switch_status)) {
 		on_off_callback = function;
 	}
+	void onSerialNum(void (*function)(uint8_t serial[IK_EEPROM_SN_SIZE])) {
+		on_SN_callback = function;
+	}
 
 protected:
 	virtual void Task();
@@ -68,6 +77,7 @@ private:
 	void (*connect_callback)(void);
 	void (*disconnect_callback)(void);
 	void (*on_off_callback)(int switch_status);
+	void (*on_SN_callback)(uint8_t serial[IK_EEPROM_SN_SIZE]);
 	int PostCommand(uint8_t *command);
 	static void rx_callback1(const Transfer_t *transfer);
 	static void rx_callback3(const Transfer_t *transfer);
@@ -84,6 +94,7 @@ private:
 	int ezusb_DownloadIntelHex(bool internal);
 	void start();
 	void handleEvents(const uint8_t *rxpacket, size_t len);
+	void clear_eeprom();
 public:
 	enum IK_LEDS {
 		IK_LED_SHIFT=1,
@@ -113,4 +124,16 @@ private:
 	volatile bool     do_polling;
 	volatile uint8_t  IK_state;
 	const uint8_t mapEpAddr2Index[4] = {0, 0, 1, 2};
+	typedef struct
+	{
+		uint8_t serialnumber[IK_EEPROM_SN_SIZE];
+		uint8_t sensorBlack[IK_NUM_SENSORS];
+		uint8_t sensorWhite[IK_NUM_SENSORS];
+	} eeprom_t;
+	void get_eeprom(void);
+	eeprom_t eeprom_data;
+	bool eeprom_valid[sizeof(eeprom_t)];
+	bool eeprom_all_valid;
+	elapsedMillis eeprom_period;
+	bool version_done;
 };

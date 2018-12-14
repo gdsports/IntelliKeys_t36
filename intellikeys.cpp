@@ -24,8 +24,8 @@
 
 #include <Arduino.h>
 #include "USBHost_t36.h"  // Read this header first for key info
-#include "intellikeys.h"
 #include "intellikeysdefs.h"
+#include "intellikeys.h"
 
 #define IK_VID          0x095e
 #define IK_PID_FWLOAD   0x0100  // Firmware load required
@@ -144,13 +144,45 @@ int IntelliKeys::sound(int freq, int duration, int volume)
 
 int IntelliKeys::get_version(void) {
 	uint8_t command[IK_REPORT_LEN] = {IK_CMD_GET_VERSION,0,0,0,0,0,0,0};
+	version_done = false;
 	return PostCommand(command);
+}
+
+void IntelliKeys::get_eeprom(void)
+{
+	uint8_t report[IK_REPORT_LEN] = {IK_CMD_EEPROM_READBYTE,0,0x1F,0,0,0,0,0};
+	uint8_t pending = 0;
+
+	if (eeprom_period > 64) {
+		debug_println("get_eeprom");
+		eeprom_period = 0;
+		for (uint8_t i=0; i < sizeof(eeprom_t); i++) {
+			if (!eeprom_valid[i]) {
+				report[1] = 0x80 + i;
+				PostCommand(report);
+				if (pending++ > 8) break;
+			}
+		}
+		if (pending == 0) {
+			eeprom_all_valid = true;
+			if (on_SN_callback) (*on_SN_callback)(eeprom_data.serialnumber);
+		}
+	}
+}
+
+void IntelliKeys::clear_eeprom()
+{
+	eeprom_all_valid = false;
+	for (int i = 0; i < IK_EEPROM_SN_SIZE; i++) {
+		//eeprom_valid[i] = false;
+	}
 }
 
 void IntelliKeys::start()
 {
 	uint8_t command[IK_REPORT_LEN] = {0};
 
+	debug_println("start");
 	command[0] = IK_CMD_INIT;
 	command[1] = 0;  //  interrupt event mode
 	PostCommand(command);
@@ -159,7 +191,7 @@ void IntelliKeys::start()
 	command[1] = 1;	//  enable
 	PostCommand(command);
 
-	//PostDelay ( 250);	// 250 ms delay
+	delay(250);
 
 	command[0] = IK_CMD_ALL_SENSORS;
 	command[1] = 0;	//  unused
@@ -167,7 +199,10 @@ void IntelliKeys::start()
 
 	command[0] = IK_CMD_GET_VERSION;
 	command[1] = 0;	//  unused
+	version_done = false;
 	PostCommand(command);
+
+	clear_eeprom();
 
 	if (connect_callback) (*connect_callback)();
 }
@@ -176,6 +211,9 @@ void IntelliKeys::disconnect()
 {
 	updatetimer.stop();
 	//txtimer.stop();
+
+	clear_eeprom();
+
 	if (disconnect_callback) (*disconnect_callback)();
 }
 
@@ -463,7 +501,8 @@ void IntelliKeys::handleEvents(const uint8_t *rxpacket, size_t len)
 			break;
 		case IK_EVENT_VERSION:
 			debug_printf("IK_EVENT_VERSION= %d.%d", rxpacket[1], rxpacket[2]);
-			if (version_callback) (*version_callback)(rxpacket[1], rxpacket[2]);
+			if (!version_done && version_callback) (*version_callback)(rxpacket[1], rxpacket[2]);
+			version_done = true;
 			break;
 		case IK_EVENT_EEPROM_READ:
 			debug_println("IK_EVENT_EEPROM_READ");
@@ -491,7 +530,15 @@ void IntelliKeys::handleEvents(const uint8_t *rxpacket, size_t len)
 			debug_println("IK_EVENT_CORRECT_DONE");
 			break;
 		case IK_EVENT_EEPROM_READBYTE:
-			debug_println("IK_EVENT_EEPROM_READBYTE");
+			debug_print("IK_EVENT_EEPROM_READBYTE ");
+			debug_printf("(0x%x, 0x%x, 0x%x)", rxpacket[1],
+					rxpacket[2],rxpacket[3]);
+			{
+				uint8_t idx = rxpacket[2] - 0x80;
+				uint8_t *p = (uint8_t *)&eeprom_data;
+				p[idx] = rxpacket[1];
+				eeprom_valid[idx] = true;
+			}
 			break;
 		case IK_EVENT_DEVICEREADY:
 			debug_println("IK_EVENT_DEVICEREADY");
@@ -525,6 +572,8 @@ void IntelliKeys::Task()
 			NVIC_ENABLE_IRQ(IRQ_USBHS);
 		}
 	}
+
+	if (!eeprom_all_valid) get_eeprom();
 }
 
 void IntelliKeys::begin()
