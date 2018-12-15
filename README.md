@@ -59,6 +59,26 @@ without using the Arduino IDE to rebuild the code.
 * Build and upload the example included with this library. Set the Board to
 Teensy 3.6 and the USB Type to "Serial + Keyboard + Mouse + Joystick".
 
+## Other examples
+
+### ik_midi
+
+![IntelliKeys sending USB MIDI](./images/ik_midi.jpg)
+
+Turn an IK into an 88 key MIDI keyboard. Instead of keyboard and mouse, the IK
+appears as a USB MIDI keyboard. The result is not a substitute for a real
+MIDI keyboard but it can be used to play notes one at a time.
+
+This was tested using an Android tablet with a USB OTG to host cable and
+FluidSynth. FluidSynth MIDI Synthesizer is a free download from Google Play.
+
+The top left corner corresponds to the left most piano key. This plays MIDI
+note 21 also known as note A0 also known as note A, octave 0 also known as
+frequency 27.5 Hertz.
+
+In the Arduino IDE, set the USB Type to MIDI. Do not use Serial + MIDI because
+this does not work on Android.
+
 ## TODO
 
 * ~~EEPROM operations?~~

@@ -245,7 +245,6 @@ void IntelliKeys::tx_callback(const Transfer_t *transfer)
 void IntelliKeys::rx_data(uint8_t idx, const Transfer_t *transfer)
 {
 	uint32_t len = transfer->length - ((transfer->qtd.token >> 16) & 0x7FFF);
-	//debug_println("ant rx, len=", len);
 	//print_hexbytes(transfer->buffer, len);
 	if (len < 1 || len > 64) {
 		queue_Data_Transfer(rxpipe[idx], rxpacket[idx], 64, this);
