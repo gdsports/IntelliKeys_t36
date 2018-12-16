@@ -56,7 +56,7 @@ void IK_switch(int switch_number, int switch_state)
 
 void IK_sensor(int sensor_number, int sensor_value)
 {
-  //Serial.printf("sensor[%d] = %d\n", sensor_number, sensor_value);
+  Serial.printf("sensor[%d] = %d\n", sensor_number, sensor_value);
 }
 
 void IK_version(int major, int minor)

@@ -148,6 +148,12 @@ int IntelliKeys::get_version(void) {
 	return PostCommand(command);
 }
 
+int IntelliKeys::get_all_sensors(void) {
+	uint8_t command[IK_REPORT_LEN] = {IK_CMD_ALL_SENSORS,0,0,0,0,0,0,0};
+	memset(sensorStatus, 255, sizeof(sensorStatus));
+	return PostCommand(command);
+}
+
 void IntelliKeys::get_eeprom(void)
 {
 	uint8_t report[IK_REPORT_LEN] = {IK_CMD_EEPROM_READBYTE,0,0x1F,0,0,0,0,0};
@@ -165,6 +171,10 @@ void IntelliKeys::get_eeprom(void)
 		}
 		if (pending == 0) {
 			eeprom_all_valid = true;
+			// Get sensor status events because eeprom_data.sensorBlack and White
+			// now have valid data.
+			get_all_sensors();
+
 			if (on_SN_callback) (*on_SN_callback)(eeprom_data.serialnumber);
 		}
 	}
@@ -173,9 +183,7 @@ void IntelliKeys::get_eeprom(void)
 void IntelliKeys::clear_eeprom()
 {
 	eeprom_all_valid = false;
-	for (int i = 0; i < IK_EEPROM_SN_SIZE; i++) {
-		//eeprom_valid[i] = false;
-	}
+	memset(eeprom_valid, 0, sizeof(eeprom_valid));
 }
 
 void IntelliKeys::start()
@@ -193,14 +201,9 @@ void IntelliKeys::start()
 
 	delay(250);
 
-	command[0] = IK_CMD_ALL_SENSORS;
-	command[1] = 0;	//  unused
-	PostCommand(command);
+	get_all_sensors();
 
-	command[0] = IK_CMD_GET_VERSION;
-	command[1] = 0;	//  unused
-	version_done = false;
-	PostCommand(command);
+	get_version();
 
 	clear_eeprom();
 
@@ -211,8 +214,6 @@ void IntelliKeys::disconnect()
 {
 	updatetimer.stop();
 	//txtimer.stop();
-
-	clear_eeprom();
 
 	if (disconnect_callback) (*disconnect_callback)();
 }
@@ -474,6 +475,21 @@ void IntelliKeys::control(const Transfer_t *transfer)
 	if (IK_state != 1) IK_firmware_load();
 }
 
+void IntelliKeys::sensorUpdate(int sensor, int value)
+{
+	int midpoint = 150;
+
+	if (eeprom_all_valid) {
+		midpoint = (50*eeprom_data.sensorBlack[sensor] +
+			50*eeprom_data.sensorWhite[sensor]) / 100;
+	}
+	int sensorOn = (value > midpoint);
+	if (sensorStatus[sensor] != sensorOn) {
+		if (sensor_callback) (*sensor_callback)(sensor, sensorOn);
+		sensorStatus[sensor] = sensorOn;
+	}
+}
+
 void IntelliKeys::handleEvents(const uint8_t *rxpacket, size_t len)
 {
 	if ((rxpacket == NULL) || (len == 0)) return;
@@ -496,7 +512,7 @@ void IntelliKeys::handleEvents(const uint8_t *rxpacket, size_t len)
 			break;
 		case IK_EVENT_SENSOR_CHANGE:
 			//debug_printf("IK_EVENT_SENSOR_CHANGE sensor[%d]=%d", rxpacket[1], rxpacket[2]);
-			if (sensor_callback) (*sensor_callback)(rxpacket[1], rxpacket[2]);
+			sensorUpdate(rxpacket[1], rxpacket[2]);
 			break;
 		case IK_EVENT_VERSION:
 			debug_printf("IK_EVENT_VERSION= %d.%d", rxpacket[1], rxpacket[2]);
@@ -508,7 +524,10 @@ void IntelliKeys::handleEvents(const uint8_t *rxpacket, size_t len)
 			break;
 		case IK_EVENT_ONOFFSWITCH:
 			debug_printf("IK_EVENT_ONOFFSWITCH= %d", rxpacket[1]);
-			if (on_off_callback) (*on_off_callback)(rxpacket[1]);
+			if (on_off_callback) {
+				if (rxpacket[1]) get_all_sensors();
+				(*on_off_callback)(rxpacket[1]);
+			}
 			break;
 		case IK_EVENT_NOMOREEVENTS:
 			debug_println("IK_EVENT_NOMOREEVENTS");
@@ -530,8 +549,6 @@ void IntelliKeys::handleEvents(const uint8_t *rxpacket, size_t len)
 			break;
 		case IK_EVENT_EEPROM_READBYTE:
 			debug_print("IK_EVENT_EEPROM_READBYTE ");
-			debug_printf("(0x%x, 0x%x, 0x%x)", rxpacket[1],
-					rxpacket[2],rxpacket[3]);
 			{
 				uint8_t idx = rxpacket[2] - 0x80;
 				uint8_t *p = (uint8_t *)&eeprom_data;

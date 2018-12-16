@@ -33,6 +33,7 @@ public:
 	int setLED(uint8_t number, uint8_t value);
 	int sound(int freq, int duration, int volume);
 	int get_version(void);
+	int get_all_sensors(void);
 	// Event callback functions
 	void onMembranePress(void (*function)(int x, int y)) {
 		membrane_press_callback = function;
@@ -95,6 +96,7 @@ private:
 	void start();
 	void handleEvents(const uint8_t *rxpacket, size_t len);
 	void clear_eeprom();
+	void sensorUpdate(int sensor, int value);
 public:
 	enum IK_LEDS {
 		IK_LED_SHIFT=1,
@@ -134,6 +136,7 @@ private:
 	eeprom_t eeprom_data;
 	bool eeprom_valid[sizeof(eeprom_t)];
 	bool eeprom_all_valid;
+	uint8_t sensorStatus[IK_NUM_SENSORS] = {255, 255, 255};
 	elapsedMillis eeprom_period;
 	bool version_done;
 };
