@@ -15,6 +15,7 @@ USBHub hub2(myusb);
 IntelliKeys ikey1(myusb);
 
 elapsedMillis beepTime;
+bool Connected = false;
 
 void IK_press(int x, int y)
 {
@@ -67,11 +68,13 @@ void IK_version(int major, int minor)
 void IK_connect(void)
 {
   Serial.println("IK connect");
+  Connected = true;
 }
 
 void IK_disconnect(void)
 {
   Serial.println("IK disconnect");
+  Connected = false;
 }
 
 void IK_onoff(int onoff)
@@ -97,6 +100,21 @@ void IK_get_SN(uint8_t SN[IK_EEPROM_SN_SIZE])
   Serial.printf("Serial Number = %s\n", mySN);
 }
 
+void IK_correct_membrane(int x, int y)
+{
+  Serial.printf("correct membrane (%d,%d)\n", x, y);
+}
+
+void IK_correct_switch(int switch_number, int switch_state)
+{
+  Serial.printf("correct switch[%d] = %d\n", switch_number, switch_state);
+}
+
+void IK_correct_done(void)
+{
+  Serial.println("correct done");
+}
+
 void setup() {
   Serial.begin(115200);
   while (!Serial && millis() < 2000) ; // wait for Arduino Serial Monitor
@@ -113,11 +131,14 @@ void setup() {
   ikey1.onVersion(IK_version);
   ikey1.onOnOffSwitch(IK_onoff);
   ikey1.onSerialNum(IK_get_SN);
+  ikey1.onCorrectMembrane(IK_correct_membrane);
+  ikey1.onCorrectSwitch(IK_correct_switch);
+  ikey1.onCorrectDone(IK_correct_done);
 }
 
 void loop() {
   myusb.Task();
-  if (beepTime > 30000) {
+  if (Connected && beepTime > 30000) {
     //ikey1.sound(1000, 100, 500);
     beepTime = 0;
   }

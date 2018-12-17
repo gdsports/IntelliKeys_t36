@@ -154,6 +154,12 @@ int IntelliKeys::get_all_sensors(void) {
 	return PostCommand(command);
 }
 
+int IntelliKeys::get_correct(void) {
+	debug_println("get_correct");
+	uint8_t command[IK_REPORT_LEN] = {IK_CMD_CORRECT,0,0,0,0,0,0,0};
+	return PostCommand(command);
+}
+
 void IntelliKeys::get_eeprom(void)
 {
 	uint8_t report[IK_REPORT_LEN] = {IK_CMD_EEPROM_READBYTE,0,0x1F,0,0,0,0,0};
@@ -199,7 +205,7 @@ void IntelliKeys::start()
 	command[1] = 1;	//  enable
 	PostCommand(command);
 
-	delay(250);
+	//delay(250);
 
 	get_all_sensors();
 
@@ -305,9 +311,7 @@ size_t IntelliKeys::write(const void *data, const size_t size)
 	//debug_print("head=", txhead);
 	//debug_println(", tail=", txtail);
 	//print_hexbytes(txbuffer, 60);
-	NVIC_DISABLE_IRQ(IRQ_USBHS);
 	transmit();
-	NVIC_ENABLE_IRQ(IRQ_USBHS);
 	return size;
 }
 
@@ -525,7 +529,10 @@ void IntelliKeys::handleEvents(const uint8_t *rxpacket, size_t len)
 		case IK_EVENT_ONOFFSWITCH:
 			debug_printf("IK_EVENT_ONOFFSWITCH= %d", rxpacket[1]);
 			if (on_off_callback) {
-				if (rxpacket[1]) get_all_sensors();
+				if (rxpacket[1]) {
+					get_correct();
+					get_all_sensors();
+				}
 				(*on_off_callback)(rxpacket[1]);
 			}
 			break;
@@ -539,16 +546,20 @@ void IntelliKeys::handleEvents(const uint8_t *rxpacket, size_t len)
 			debug_println("IK_EVENT_SWITCH_REPEAT");
 			break;
 		case IK_EVENT_CORRECT_MEMBRANE:
-			debug_println("IK_EVENT_CORRECT_MEMBRANE");
+			debug_printf("IK_EVENT_CORRECT_MEMBRANE (%d,%d)", rxpacket[1], rxpacket[2]);
+			if (correct_membrane_callback) (*correct_membrane_callback)(rxpacket[1], rxpacket[2]);
 			break;
 		case IK_EVENT_CORRECT_SWITCH:
-			debug_println("IK_EVENT_CORRECT_SWITCH");
+			debug_printf("IK_EVENT_CORRECT_SWITCH switch[%d]=%d",
+					rxpacket[1], rxpacket[2]);
+			if (correct_switch_callback) (*correct_switch_callback)(rxpacket[1], rxpacket[2]);
 			break;
 		case IK_EVENT_CORRECT_DONE:
 			debug_println("IK_EVENT_CORRECT_DONE");
+			if (correct_done_callback) (*correct_done_callback)();
 			break;
 		case IK_EVENT_EEPROM_READBYTE:
-			debug_print("IK_EVENT_EEPROM_READBYTE ");
+			debug_println("IK_EVENT_EEPROM_READBYTE");
 			{
 				uint8_t idx = rxpacket[2] - 0x80;
 				uint8_t *p = (uint8_t *)&eeprom_data;

@@ -34,6 +34,7 @@ public:
 	int sound(int freq, int duration, int volume);
 	int get_version(void);
 	int get_all_sensors(void);
+	int get_correct(void);
 	// Event callback functions
 	void onMembranePress(void (*function)(int x, int y)) {
 		membrane_press_callback = function;
@@ -62,6 +63,15 @@ public:
 	void onSerialNum(void (*function)(uint8_t serial[IK_EEPROM_SN_SIZE])) {
 		on_SN_callback = function;
 	}
+	void onCorrectMembrane(void (*function)(int x, int y)) {
+		correct_membrane_callback = function;
+	}
+	void onCorrectSwitch(void (*function)(int switch_number, int switch_state)) {
+		correct_switch_callback = function;
+	}
+	void onCorrectDone(void (*function)(void)) {
+		correct_done_callback = function;
+	}
 
 protected:
 	virtual void Task();
@@ -79,6 +89,9 @@ private:
 	void (*disconnect_callback)(void);
 	void (*on_off_callback)(int switch_status);
 	void (*on_SN_callback)(uint8_t serial[IK_EEPROM_SN_SIZE]);
+	void (*correct_membrane_callback)(int x, int y);
+	void (*correct_switch_callback)(int switch_number, int switch_state);
+	void (*correct_done_callback)(void);
 	int PostCommand(uint8_t *command);
 	static void rx_callback1(const Transfer_t *transfer);
 	static void rx_callback3(const Transfer_t *transfer);
@@ -117,7 +130,7 @@ private:
 	Pipe_t *txpipe;
 	bool first_update;
 	setup_t IK_setup;
-	uint8_t txbuffer[256];
+	uint8_t txbuffer[9*15];		// Must be multiple of 9!
 	uint8_t rxpacket[3][64];
 	volatile uint16_t txhead;
 	volatile uint16_t txtail;

@@ -35,7 +35,14 @@ The 8051 firmware is extracted from the
 
 The IK EEPROM holds the device serial number. Use the onSerialNum function to
 get the serial number. See the example for details. The EEPROM also holds
-calibration values(?) for the overlay sensors.
+calibration values for the overlay sensors.
+
+The get_correct, onCorrectMembrane, onCorrectSwitch, and onCorrectDone
+functions report the current state of the IK. When the get_correct function is
+called, the IK sends back active membrane and switch states. This is useful if
+the sketch gets out of sync with the IK. onCorrectMembrane and onCorrectSwitch
+will report the current state. The sketch may also call get_correct
+periodically to ensure it always knows the current state of the board.
 
 ## Hardware components
 
@@ -81,8 +88,8 @@ this does not work on Android.
 
 ## TODO
 
-* ~~EEPROM operations?~~
-* CORRECT operations?
 * Load tables from micro SD card
-* Modify onSensors so it returns 0 or 1 instead of raw sensor values. Use
-  the EEPROM calibration values.
+* ~~CORRECT operations?~~
+* ~~EEPROM operations?~~
+* ~~Modify onSensors so it returns 0 or 1 instead of raw sensor values. Use
+  the EEPROM calibration values.~~
