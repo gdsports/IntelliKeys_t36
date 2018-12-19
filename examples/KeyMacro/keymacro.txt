@@ -1,0 +1,2 @@
+GUI-KEY_R ~100 'chrome' SPACE 'https://www.youtube.com/' ENTER
+GUI-KEY_R ~100 'chrome' SPACE 'https://www.google.com/' ENTER

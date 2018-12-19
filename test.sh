@@ -30,6 +30,12 @@ arduino --pref "compiler.warning_level=default" \
 arduino --board "${BOARD}" --save-prefs
 CC="arduino --verify --board ${BOARD}"
 cd ${LIBDIR}
+if [ -d ${HOME}/Sync/keymouse_t3/ ]
+then
+    ln -s ${HOME}/Sync/keymouse_t3/
+else
+    git clone https://github.com/gdsports/keymouse_t3
+fi
 if [ -d ${HOME}/Sync/IntelliKeys_t36/ ]
 then
     ln -s ${HOME}/Sync/IntelliKeys_t36/
