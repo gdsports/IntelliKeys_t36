@@ -1,5 +1,28 @@
 /*
  * Demonstrate triggering keyboard macros using the switch 1 and 2 inputs.
+ * The touch area is divided into a 2 row by 3 column grid for a total of
+ * 6 large touch buttons/pads.
+ *
+ * The key presses for the 2 switch inputs and the 6 touch inputs are
+ * determined by a file stored on a micro SD card named "keymacro.txt".
+ * The first 2 lines are for the switch inputs. The following lines are
+ * for the touch pads.
+ *
+ * Line 1: Switch input 1
+ * Line 2: Switch input 2
+ * Line 3: Touch row 1, col 1
+ * Line 4: Touch row 1, col 2
+ * Line 5: Touch row 1, col 3
+ * Line 6: Touch row 2, col 1
+ * Line 7: Touch row 2, col 2
+ * Line 8: Touch row 2, col 3
+ *
+ * Extra lines are ignored.
+ *
+ * Samples lines to launch chrome to various URLs using Windows.
+ *
+ * GUI-KEY_R ~100 'chrome' SPACE 'https://www.youtube.com/' ENTER
+ * GUI-KEY_R ~100 'chrome' SPACE 'https://www.google.com/' ENTER
  */
 
 #include <USBHost_t36.h>
@@ -18,6 +41,20 @@ const int chipSelect = BUILTIN_SDCARD;
 
 bool Connected = false;
 
+/*
+ * The native touch resolution is 24x24. For this example, each virtual button
+ * is COLS native columns by ROWS rows. This array represents the ROWS rows of
+ * COLS virtual buttons. The elements are incremented with each native touch
+ * press and decremented with each native touch release. When the count goes
+ * from 0 to 1, the corresponding key macro starts.
+ */
+
+#define ROW_DIV (12)
+#define COL_DIV (8)
+#define ROWS    (24/ROW_DIV)
+#define COLS    (24/COL_DIV)
+uint8_t membrane[COLS][ROWS];
+
 // Default key macros for switch 1 and 2. They can be overriden by
 // keymacros.txt stored on SD card.
 // Windows
@@ -27,16 +64,30 @@ const char google[] =
 const char youtube[] =
   "GUI-KEY_R ~100 'chrome' SPACE 'https://www.youtube.com/' ENTER";
 
-char *macros[2] = {(char *)youtube, (char *)google};
+// Key macro strings. [0] = switch 1, [1] = switch 2, [...] touch keys
+char *macros[2+(ROWS*COLS)] = {(char *)youtube, (char *)google};
 
 void IK_press(int x, int y)
 {
   Serial.printf("membrane press (%d,%d)\n", x, y);
+  uint8_t row = y / ROW_DIV;
+  uint8_t col = x / COL_DIV;
+  if (membrane[col][row] == 0) {
+    uint8_t  macro_index = (row*COLS) + col + 2;
+    Serial.printf("x=%d col=%d y=%d row=%d idx=%d\n", x, col, y, row,
+        macro_index);
+    keyplay.start(macros[macro_index]);
+  }
+  membrane[col][row]++;
 }
 
 void IK_release(int x, int y)
 {
   Serial.printf("membrane release (%d,%d)\n", x, y);
+  uint8_t row = y / ROW_DIV;
+  uint8_t col = x / COL_DIV;
+  membrane[col][row]--;
+  if (membrane[col][row] < 0) membrane[col][row] = 0;
 }
 
 void IK_switch(int switch_number, int switch_state)
@@ -68,6 +119,8 @@ void IK_disconnect(void)
 void IK_onoff(int onoff)
 {
   Serial.printf("On/Off switch = %d\n", onoff);
+  Keyboard.releaseAll();
+  Mouse.release(MOUSE_ALL);
 }
 
 void setup()
@@ -99,13 +152,17 @@ void setup()
     char buf[1024];
     Serial.println("Open keymacro.txt");
     for (size_t idx = 0; idx < sizeof(macros)/sizeof(macros[0]); idx++) {
-      if (!MacroFile.available()) break;
-      int bytesIn = MacroFile.readBytesUntil('\n', buf, sizeof(buf)-1);
-      if (bytesIn > 0) {
-        buf[bytesIn] = '\0';
-        char *buf_right_size = strdup(buf);
-        macros[idx] = buf_right_size;
-        Serial.printf("macro[%d]=%s\n", idx, buf_right_size);
+      if (MacroFile.available()) {
+        int bytesIn = MacroFile.readBytesUntil('\n', buf, sizeof(buf)-1);
+        if (bytesIn > 0) {
+          buf[bytesIn] = '\0';
+          char *buf_right_size = strdup(buf);
+          macros[idx] = buf_right_size;
+          Serial.printf("macro[%d]=%s\n", idx, buf_right_size);
+        }
+      }
+      else {
+        macros[idx] = NULL;
       }
     }
     MacroFile.close();
